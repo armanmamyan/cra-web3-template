@@ -10,19 +10,40 @@ const CORRECT_NET_ID = 1;
 export const DAppContext = createContext(null);
 
 export const DAppProvider = ({ children }) => {
-  const [instance, setInstance] = useState(null);
   const [userData, setUserData] = useState(null);
   const [transactionHash, setTransactionHash] = useState("");
   const [loading, setLoading] = useState(false);
   const [contractDetails, setContractDetails] = useState(null);
-  const [walletConnector, setWalletConnector] = useState(null);
 
-  const connectToContract = (provider, signer) => {
+  const connectToContract = async (provider, signer, userAddress) => {
     try {
-      console.log(userData);
       const instance = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
       const contractWithSigner = instance.connect(signer);
-      setInstance(contractWithSigner);
+      let details = {};
+
+      const {
+        isActive,
+        mintPrice,
+        MAX_SUPPLY,
+        tokensMinted = () => {},
+      } = contractWithSigner;
+
+      const isPublicSaleActive = await isActive();
+      const totalSupplyNFT = await MAX_SUPPLY();
+      const publicETHPrice = ethers.utils.formatEther(`${await mintPrice()}`);
+
+      const alreadyMinted = await tokensMinted();
+
+      details = {
+        ...details,
+        price: publicETHPrice,
+        isPublicSaleActive,
+        totalSupplyNFT,
+        alreadyMinted,
+        methods: contractWithSigner,
+      };
+
+      setContractDetails(details);
     } catch (error) {
       console.log(error, "Error");
     }
@@ -52,12 +73,12 @@ export const DAppProvider = ({ children }) => {
       });
 
       setLoading(false);
-      connectToContract(web3Provider, signer);
+      connectToContract(web3Provider, signer, accounts);
       provider.on("accountsChanged", (accounts) => {
         setUserData({
           ...userData,
           account: accounts[0],
-        })
+        });
       });
 
       // Subscribe to chainId change
@@ -65,7 +86,7 @@ export const DAppProvider = ({ children }) => {
         setUserData({
           ...userData,
           chainId,
-        })
+        });
       });
 
       // Subscribe to session disconnection
@@ -88,8 +109,6 @@ export const DAppProvider = ({ children }) => {
       const accounts = await signer.getAddress();
       const { chainId } = await web3Provider.getNetwork();
 
-      connectToContract(web3Provider, signer);
-
       if (parseInt(chainId) !== CORRECT_NET_ID)
         return alert("Please change to MainNet");
 
@@ -97,6 +116,7 @@ export const DAppProvider = ({ children }) => {
         account: accounts,
         chainId: Number(chainId),
       });
+      await connectToContract(web3Provider, signer, accounts);
       return true;
     } catch (error) {
       console.log(error, "Error");
@@ -106,14 +126,13 @@ export const DAppProvider = ({ children }) => {
 
   const mint = async (count = 1) => {
     try {
-      const instances = instance;
       const account = userData.account;
-      if (!instances) return toast.error(`No instance`);
+      if (!contractDetails) return toast.error(`No instance`);
       if (!account)
         return toast.error(`No account selected. Try reauthenticating`);
       if (!count) return toast.error(`No token count provided.`);
 
-      const { isActive, freeMint, mintPrice } = instances;
+      const { isActive, freeMint, mintPrice } = contractDetails;
       const isPublicSaleActive = await isActive();
       const price = await mintPrice();
       let presaleCount = count;
@@ -132,43 +151,10 @@ export const DAppProvider = ({ children }) => {
     }
   };
 
-  const getContractDetails = async () => {
-    if (!instance) return null;
-    let details = {};
-
-    const {
-      isActive,
-      mintPrice,
-      MAX_SUPPLY,
-      tokensMinted = () => {},
-    } = instance;
-
-    const isPublicSaleActive = await isActive();
-
-    const totalSupplyNFT = await MAX_SUPPLY();
-    const publicETHPrice = ethers.utils.formatEther(`${await mintPrice()}`);
-
-    const alreadyMinted = await tokensMinted();
-    details.price = publicETHPrice;
-
-    details = {
-      ...details,
-      isPublicSaleActive,
-      totalSupplyNFT,
-      alreadyMinted,
-      methods: instance,
-    };
-
-    setContractDetails(details);
-  };
-
   const resetTransactionHash = () => {
     setTransactionHash("");
   };
 
-  useEffect(() => {
-    getContractDetails();
-  }, [instance]);
 
   return (
     <DAppContext.Provider
