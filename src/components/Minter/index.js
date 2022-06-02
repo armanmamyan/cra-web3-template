@@ -4,7 +4,7 @@ import Metamask from "../../assets/metamask.svg";
 import WalletConnectImage from "../../assets/walletConnect.svg";
 import "./index.css";
 
-const ConnectWalletModal = ({ setShowModal }) => {
+const ConnectWalletModal = () => {
   const { loading, connectBrowserWallet, connectToWalletConnect } =
     useContext(DAppContext);
   
