@@ -1,11 +1,11 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState } from "react";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import abi from "../output/abi.json";
 import { ethers } from "ethers";
 import { toast } from "react-hot-toast";
 
-const CONTRACT_ADDRESS = "0x0A69cEeB9aBCC8d0905Dd0458153a5d2262A8cD6";
-const CORRECT_NET_ID = 1;
+const CONTRACT_ADDRESS = "0x0E72730F71D8304f73E149e9001fB9361D40e154";
+const CORRECT_NET_ID = 4;
 
 export const DAppContext = createContext(null);
 
@@ -15,7 +15,7 @@ export const DAppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [contractDetails, setContractDetails] = useState(null);
 
-  const connectToContract = async (provider, signer, userAddress) => {
+  const connectToContract = async (provider, signer) => {
     try {
       const instance = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
       const contractWithSigner = instance.connect(signer);
@@ -25,18 +25,21 @@ export const DAppProvider = ({ children }) => {
         isActive,
         mintPrice,
         MAX_SUPPLY,
-        tokensMinted = () => {},
+        name,
+        totalSupply = () => {},
       } = contractWithSigner;
 
+      const collectionName = await name();
       const isPublicSaleActive = await isActive();
       const totalSupplyNFT = await MAX_SUPPLY();
       const publicETHPrice = ethers.utils.formatEther(`${await mintPrice()}`);
 
-      const alreadyMinted = await tokensMinted();
+      const alreadyMinted = Number(await totalSupply());
 
       details = {
         ...details,
         price: publicETHPrice,
+        collectionName,
         isPublicSaleActive,
         totalSupplyNFT,
         alreadyMinted,
@@ -44,6 +47,7 @@ export const DAppProvider = ({ children }) => {
       };
 
       setContractDetails(details);
+      setLoading(false)
     } catch (error) {
       console.log(error, "Error");
     }
@@ -103,23 +107,27 @@ export const DAppProvider = ({ children }) => {
 
   const connectBrowserWallet = async () => {
     try {
+      setLoading(true)
       const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
       await web3Provider.send("eth_requestAccounts", []);
       const signer = web3Provider.getSigner();
       const accounts = await signer.getAddress();
+      const balance =  await web3Provider.getBalance(accounts);
       const { chainId } = await web3Provider.getNetwork();
-
+      
       if (parseInt(chainId) !== CORRECT_NET_ID)
         return alert("Please change to MainNet");
 
       setUserData({
         account: accounts,
         chainId: Number(chainId),
+        accountBalance: Number(ethers.utils.formatEther(balance))
       });
       await connectToContract(web3Provider, signer, accounts);
       return true;
     } catch (error) {
       console.log(error, "Error");
+      setLoading(false)
       return false;
     }
   };
@@ -131,11 +139,9 @@ export const DAppProvider = ({ children }) => {
       if (!account)
         return toast.error(`No account selected. Try reauthenticating`);
       if (!count) return toast.error(`No token count provided.`);
-
-      const { isActive, freeMint, mintPrice } = contractDetails;
+      const { isActive, mint, mintPrice } = contractDetails.methods;
       const isPublicSaleActive = await isActive();
       const price = await mintPrice();
-      let presaleCount = count;
 
       const cost = window.BigInt(`${count * price}`);
 
@@ -143,7 +149,11 @@ export const DAppProvider = ({ children }) => {
 
       if (!isPublicSaleActive) return toast.error(`Sales has not start yet`);
 
-      return await freeMint(presaleCount, options);
+      await mint(count, options);
+      setContractDetails({
+        ...contractDetails,
+        alreadyMinted: contractDetails.alreadyMinted + count
+      });
     } catch (error) {
       alert(error);
       toast.error(error.message);

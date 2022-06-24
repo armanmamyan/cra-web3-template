@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from "react";
+import { useContext } from "react";
 import { DAppContext } from "../../context";
 import Metamask from "../../assets/metamask.svg";
 import WalletConnectImage from "../../assets/walletConnect.svg";
@@ -18,8 +18,6 @@ const ConnectWalletModal = () => {
     }
     connectBrowserWallet();
   };
-
-
 
   return (
     <div className="wallet--connection-modal">
@@ -56,40 +54,4 @@ const ConnectWalletModal = () => {
   );
 };
 
-const Minter = () => {
-  const { userData, mint } = useContext(DAppContext);
-  const [showModal, setShowModal] = useState(false);
-
-  const toggleModal = () => {
-    setShowModal(!showModal);
-  };
-
-  useEffect(() => {
-    if(userData?.account) {
-      setShowModal(false);
-    }
-  }, [userData?.account]);
-
-  return (
-    <div className="connect-btn-container">
-      <h1>Account: {userData?.account}</h1>
-      {!userData ? (
-        <button type="button" onClick={toggleModal} className="connect-wallet">
-          Connect Wallet
-        </button>
-      ) : (
-        <button type="button" onClick={() => mint(2)} className="connect-wallet">
-          Mint 1
-        </button>
-      )}
-      {showModal && (
-        <>
-          <ConnectWalletModal setShowModal={setShowModal} />
-          <div className="wallet--connection-modal_overlay" />
-        </>
-      )}
-    </div>
-  );
-};
-
-export default Minter;
+export default ConnectWalletModal;

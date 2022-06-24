@@ -127,6 +127,13 @@
   },
   {
     "inputs": [],
+    "name": "MAX_PER_TX",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "MAX_SUPPLY",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
@@ -149,15 +156,6 @@
     "name": "balanceOf",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_count", "type": "uint256" }
-    ],
-    "name": "freeMint",
-    "outputs": [],
-    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -187,10 +185,12 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "maxAllowedTokensPerPurchase",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
+    "inputs": [
+      { "internalType": "uint256", "name": "_count", "type": "uint256" }
+    ],
+    "name": "mint",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -274,9 +274,18 @@
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "_price", "type": "uint256" }
+      { "internalType": "uint256", "name": "maxMintSupply", "type": "uint256" }
     ],
-    "name": "setPrice",
+    "name": "setMaxMintSupply",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_count", "type": "uint256" }
+    ],
+    "name": "setMaximumAllowedTokens",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -299,7 +308,7 @@
   },
   {
     "inputs": [],
-    "name": "toggleSale",
+    "name": "toggleSaleStatus",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
